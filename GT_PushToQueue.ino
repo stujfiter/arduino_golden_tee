@@ -58,7 +58,7 @@ void loop() {
       gameInPlay = true;
       Serial.print("Game In Play\n");
       delay(100);
-      pushToQueue();
+      pushToQueue("Game In Play");
   }
   
   
@@ -79,7 +79,8 @@ void loop() {
   if (gameState == POSSIBLE_GAME_OVER && now - timeOff > 5000) {
     gameState = NO_GAME;
     gameInPlay = false;
-    Serial.print("Game Over\n"); 
+    Serial.print("Game Over\n");
+    pushToQueue("Game Over"); 
   }
   
   if (gameInPlay) {
@@ -101,29 +102,47 @@ void loop() {
     Serial.println();
     Serial.println("disconnecting");
     client.stop();
-    pushingToQueue = false;
-    // do nothing forevermore:
-    //while(true);
-    
+    pushingToQueue = false;    
   }
   
   
 }
 
-void pushToQueue() {
+void pushToQueue(char* msg) {  
+  String urlEncMsg = URLEncode(msg);
   // if you get a connection, report back via serial:
   if (client.connect(server, 80)) {
     Serial.println("connected");
     // Make a HTTP request:
-    client.println("GET /040291695885/twgoldentee?Action=SendMessage&MessageBody=Game%20In%20Play HTTP/1.1");
+    client.println("GET /040291695885/twgoldentee?Action=SendMessage&MessageBody=" + urlEncMsg + " HTTP/1.1");
     client.println("Host: sqs.us-west-2.amazonaws.com");
     client.println("Connection: close");
     client.println();
     pushingToQueue = true;
   } 
   else {
-    // kf you didn't get a connection to the server:
+    // if you didn't get a connection to the server:
     Serial.println("connection failed");
   } 
+}
+
+String URLEncode(const char* msg)
+{
+    const char *hex = "0123456789abcdef";
+    String encodedMsg = "";
+
+    while (*msg!='\0'){
+        if( ('a' <= *msg && *msg <= 'z')
+                || ('A' <= *msg && *msg <= 'Z')
+                || ('0' <= *msg && *msg <= '9') ) {
+            encodedMsg += *msg;
+        } else {
+            encodedMsg += '%';
+            encodedMsg += hex[*msg >> 4];
+            encodedMsg += hex[*msg & 15];
+        }
+        msg++;
+    }
+    return encodedMsg;
 }
 
